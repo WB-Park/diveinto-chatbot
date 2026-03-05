@@ -74,6 +74,22 @@ function stripMarkdown(text: string): string {
     .replace(/`(.*?)`/g, '$1')         // `code` → code
 }
 
+// --- URL을 클릭 가능한 링크로 변환 ---
+function renderWithLinks(text: string) {
+  const urlPattern = /(https?:\/\/[^\s)]+)/g
+  const parts = text.split(urlPattern)
+  return parts.map((part, i) => {
+    if (part.match(/^https?:\/\//)) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline break-all">
+          {part}
+        </a>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
 const LOGO_URL = 'https://ecimg.cafe24img.com/pg1056b95784775091/diveintosmile/web/upload/_dj/img/s107/240613/logo3.png'
 
 // --- 메시지 버블 ---
@@ -95,7 +111,7 @@ function ChatBubble({ message }: { message: Message }) {
               : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
           }`}
         >
-          {displayContent}
+          {isUser ? displayContent : renderWithLinks(displayContent)}
         </div>
         {/* 첨부 파일 미리보기 */}
         {message.files && message.files.length > 0 && (
