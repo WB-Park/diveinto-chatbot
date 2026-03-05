@@ -146,12 +146,11 @@ function TypingIndicator() {
   )
 }
 
-// --- 퀵 액션 ---
-function QuickActions({ onAction }: { onAction: (text: string) => void }) {
+// --- 퀵 액션 (항상 표시) ---
+function QuickActions({ onAction, disabled }: { onAction: (text: string) => void; disabled?: boolean }) {
   const actions = [
-    { emoji: '🏊', label: '단체 수모 주문', text: '단체 수영모 주문제작하고 싶어요' },
-    { emoji: '🛍️', label: '상품 문의', text: '다이브인투 상품에 대해 알고 싶어요' },
-    { emoji: '📦', label: '배송/교환', text: '배송이나 교환/반품 정책이 궁금해요' },
+    { emoji: '🏊', label: '단체 수모 제작', text: '단체 수영모 주문제작하고 싶어요' },
+    { emoji: '👙', label: '상품 추천', text: '수영복이나 수영모자 추천해주세요' },
   ]
   return (
     <div className="flex flex-wrap gap-2 justify-center py-2">
@@ -159,7 +158,8 @@ function QuickActions({ onAction }: { onAction: (text: string) => void }) {
         <button
           key={a.label}
           onClick={() => onAction(a.text)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-white border border-blue-200 rounded-full text-sm text-gray-700 hover:bg-blue-50 hover:border-primary transition-all shadow-sm active:scale-95"
+          disabled={disabled}
+          className="flex items-center gap-1.5 px-4 py-2 bg-white border border-blue-200 rounded-full text-sm text-gray-700 hover:bg-blue-50 hover:border-primary transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span>{a.emoji}</span>
           <span>{a.label}</span>
@@ -185,7 +185,6 @@ export default function ChatPage() {
     return uuidv4()
   })
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
-  const [showQuickActions, setShowQuickActions] = useState(true)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -209,8 +208,6 @@ export default function ChatPage() {
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() && uploadedFiles.length === 0) return
-    setShowQuickActions(false)
-
     const userMessage: Message = {
       id: uuidv4(),
       role: 'user',
@@ -321,10 +318,6 @@ export default function ChatPage() {
           <ChatBubble key={msg.id} message={msg} />
         ))}
 
-        {showQuickActions && messages.length <= 1 && (
-          <QuickActions onAction={(text) => sendMessage(text)} />
-        )}
-
         {isLoading && <TypingIndicator />}
         <div ref={chatEndRef} />
       </main>
@@ -351,6 +344,11 @@ export default function ChatPage() {
           ))}
         </div>
       )}
+
+      {/* 퀵 액션 칩 (항상 표시) */}
+      <div className="flex-shrink-0 bg-surface border-t border-gray-100 px-3 pt-2">
+        <QuickActions onAction={(text) => sendMessage(text)} disabled={isLoading} />
+      </div>
 
       {/* 입력 영역 */}
       <footer className="flex-shrink-0 bg-white border-t border-gray-200 px-3 py-2 safe-bottom">
