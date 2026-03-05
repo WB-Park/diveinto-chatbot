@@ -11,6 +11,83 @@ interface ChatMessage {
   content: string
 }
 
+// 상품 검색 함수
+async function searchProducts(query: string, category?: string): Promise<string> {
+  const supabase = getServiceSupabase()
+
+  // 키워드를 분리해서 검색
+  const keywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 0)
+
+  // 모든 상품 가져오기 (소규모 카탈로그에 적합)
+  let queryBuilder = supabase
+    .from('products')
+    .select('name, description, category, price, original_url, image_urls, thumbnail_url, detail_text, size_info, color_options, size_options, metadata')
+
+  // 카테고리 필터
+  if (category) {
+    queryBuilder = queryBuilder.eq('category', category)
+  }
+
+  const { data: products, error } = await queryBuilder
+
+  if (error || !products || products.length === 0) {
+    return JSON.stringify({
+      results: [],
+      message: '현재 등록된 상품이 없습니다. diveinto.kr에서 직접 확인해주세요.',
+    })
+  }
+
+  // 키워드 매칭 스코어 계산
+  const scored = products.map(product => {
+    let score = 0
+    const searchText = [
+      product.name,
+      product.description,
+      product.category,
+      ...(product.color_options || []),
+      ...(product.size_options || []),
+      product.detail_text,
+    ].join(' ').toLowerCase()
+
+    for (const kw of keywords) {
+      if (product.name?.toLowerCase().includes(kw)) score += 10 // 상품명 매칭 높은 점수
+      if (product.category?.toLowerCase().includes(kw)) score += 5
+      if (product.color_options?.some((c: string) => c.toLowerCase().includes(kw))) score += 8
+      if (product.size_options?.some((s: string) => s.toLowerCase().includes(kw))) score += 6
+      if (searchText.includes(kw)) score += 2
+    }
+
+    return { ...product, score }
+  })
+
+  // 점수순 정렬, 0점 초과만
+  const matched = scored
+    .filter(p => p.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+
+  // 매칭 결과가 없으면 카테고리별 인기 상품 반환
+  const results = matched.length > 0
+    ? matched
+    : scored.slice(0, 5) // 전체에서 상위 5개
+
+  return JSON.stringify({
+    results: results.map(p => ({
+      name: p.name,
+      price: p.price ? `${p.price.toLocaleString()}원` : '가격 문의',
+      category: p.category,
+      url: p.original_url,
+      thumbnail: p.thumbnail_url,
+      colors: p.color_options,
+      sizes: p.size_options,
+      size_info: p.size_info?.slice(0, 500),
+      description_summary: p.description?.slice(0, 300),
+    })),
+    total_found: results.length,
+    query,
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { messages, sessionId } = await req.json() as {
@@ -141,6 +218,14 @@ export async function POST(req: NextRequest) {
           })
 
           toolResults.push({ type: 'order', name: 'submit_order', data: { orderId, totalPrice } })
+        } else if (toolUse.name === 'search_products') {
+          // 상품 검색
+          const input = toolUse.input
+          result = await searchProducts(
+            input.query as string,
+            input.category as string | undefined
+          )
+          toolResults.push({ type: 'search', name: 'search_products', data: JSON.parse(result) })
         } else {
           result = handleToolCall(toolUse.name, toolUse.input)
           toolResults.push({ type: 'quote', name: toolUse.name, data: JSON.parse(result) })

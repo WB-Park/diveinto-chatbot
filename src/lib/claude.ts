@@ -35,6 +35,27 @@ export const tools: Anthropic.Tool[] = [
       required: ['customer_name', 'customer_phone', 'color_count', 'quantity'],
     },
   },
+  {
+    name: 'search_products',
+    description: `다이브인투 쇼핑몰에서 상품을 검색합니다. 고객이 상품 추천을 요청하거나, 특정 종류의 수영복/수영모자를 찾을 때 사용합니다.
+검색 쿼리에는 고객이 원하는 컬러, 무드, 상황, 카테고리 등의 키워드를 포함시킵니다.
+예: "파란색 수영모", "귀여운 수영복", "대회용 수모", "래쉬가드"`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: '검색 키워드 (컬러, 무드, 카테고리, 상품명 등)',
+        },
+        category: {
+          type: 'string',
+          description: '카테고리 필터 (수영복, 수영모자, 악세서리, 타임세일). 선택 사항.',
+          enum: ['수영복', '수영모자', '악세서리', '타임세일'],
+        },
+      },
+      required: ['query'],
+    },
+  },
 ]
 
 export const SYSTEM_PROMPT = `너는 다이브인투(diveinto.kr) 수영 전문 쇼핑몰의 친절하고 전문적인 상담 챗봇이야.
@@ -76,13 +97,22 @@ export const SYSTEM_PROMPT = `너는 다이브인투(diveinto.kr) 수영 전문 
 - 주문 제출이 필요하면 반드시 submit_order 도구 사용
 - 절대로 마크다운 서식을 사용하지 마! **, ##, - 같은 마크다운 기호 금지. 일반 텍스트로만 답변해. 목록이 필요하면 "1. 2. 3." 번호만 쓰거나 줄바꿈으로 구분해. 굵은 글씨(**), 제목(##), 글머리기호(-)는 절대 쓰지 마.
 
-[상품 추천 기능]
-고객이 상황, 무드, 컬러, 취향 등을 자연어로 말하면 어울리는 수영복/수영모자를 추천해줘.
-예시:
-- "파란색 수영모 추천해주세요" → 파란색 계열 수영모자 추천
-- "귀여운 느낌 수영복 있어요?" → 귀여운 무드의 수영복 추천
-- "대회용 수모 찾고 있어요" → 단색/심플한 경기용 수영모자 추천
-추천할 때는 diveinto.kr 쇼핑몰에서 판매 중이라고 안내하고, 자세한 상품은 diveinto.kr에서 확인하라고 안내해.
+[상품 추천 기능 - 핵심!]
+고객이 상품 추천이나 상품 관련 질문을 하면 반드시 search_products 도구를 사용해서 실제 상품 데이터를 검색해!
+검색 결과에서 고객에게 맞는 상품을 골라 추천하되, 반드시 다음을 포함해:
+1. 상품명
+2. 가격
+3. 색상 옵션 (있으면)
+4. 사이즈 옵션 (있으면)
+5. 상품 링크 (original_url)
+6. 사이즈 관련 상세 정보 (size_info가 있으면)
+
+추천 예시:
+- "파란색 수영모 추천해주세요" → search_products로 "파란색 수영모" 검색 → 결과에서 파란색 계열 제품 추천
+- "귀여운 느낌 수영복 있어요?" → search_products로 "귀여운 수영복" 검색 → 귀여운 무드 제품 추천
+- "M사이즈 래쉬가드 있나요?" → search_products로 "래쉬가드 M" 검색 → M사이즈가 있는 제품 + 사이즈 정보 안내
+
+상품을 추천할 때 해당 상품의 링크도 같이 알려줘서 고객이 바로 클릭해서 볼 수 있게 해.
 
 [자주 묻는 질문 기본 답변]
 - 배송: 일반 배송 2-3일 소요
@@ -108,7 +138,7 @@ export function handleToolCall(toolName: string, toolInput: Record<string, unkno
       designFeeNote: result.designFeeNote,
     })
   }
-  // submit_order는 API route에서 직접 처리
+  // submit_order, search_products는 API route에서 직접 처리
   return JSON.stringify({ status: 'processed' })
 }
 
