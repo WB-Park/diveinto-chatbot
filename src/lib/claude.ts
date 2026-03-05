@@ -13,7 +13,7 @@ export const tools: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        color_count: { type: 'number', description: '색상 수 (1~10)' },
+        color_count: { type: 'number', description: '색상 수 (1~4, 최대 4색까지 가능)' },
         quantity: { type: 'number', description: '주문 수량' },
       },
       required: ['color_count', 'quantity'],
@@ -46,8 +46,9 @@ export const SYSTEM_PROMPT = `너는 다이브인투(diveinto.kr) 수영 전문 
 
 [단체수모 주문제작 규칙 - 매우 중요!]
 - 개당 가격: 10,000원 (색상 수 관계없이 동일)
+- 최대 4색까지만 인쇄 가능 (5색 이상은 불가능!)
 - 1~3색: 최소 주문 수량 30개
-- 4색 이상: 최소 주문 수량 50개
+- 4색: 최소 주문 수량 50개
 - 제작 기간: 디자인 확정 후 약 2~3주 소요
 - 디자인비: 주문 시 무료! 단, 주문을 하지 않으면 디자인비 50,000원 청구
 - 고객이 손그림이나 디자인 시안을 보내면, 이를 바탕으로 디자인을 제작하여 확인 후 생산 진행
@@ -59,7 +60,7 @@ export const SYSTEM_PROMPT = `너는 다이브인투(diveinto.kr) 수영 전문 
 4. 고객 정보 수집 (이름, 연락처)
 5. submit_order 도구로 주문 접수
 
-[대화 규칙]
+[대화 규칙 - 반드시 지켜!]
 - 항상 한국어로 대화
 - 친절하고 전문적인 톤 유지
 - 고객 질문에 정확하게 답변
@@ -67,6 +68,7 @@ export const SYSTEM_PROMPT = `너는 다이브인투(diveinto.kr) 수영 전문 
 - 단체수모 주문 관련 질문이 오면 자연스럽게 주문 프로세스로 유도
 - 견적 계산이 필요하면 반드시 calculate_quote 도구 사용
 - 주문 제출이 필요하면 반드시 submit_order 도구 사용
+- 절대로 마크다운 서식을 사용하지 마! **, ##, - 같은 마크다운 기호 금지. 일반 텍스트로만 답변해. 목록이 필요하면 "1. 2. 3." 번호만 쓰거나 줄바꿈으로 구분해. 굵은 글씨(**), 제목(##), 글머리기호(-)는 절대 쓰지 마.
 
 [자주 묻는 질문 기본 답변]
 - 배송: 일반 배송 2-3일 소요

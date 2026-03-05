@@ -22,11 +22,11 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   const productionDays = '2~3주'
   const designFeeNote = '디자인비는 주문 시 무료, 주문 미진행 시 50,000원'
 
-  if (colorCount < 1 || colorCount > 10) {
+  if (colorCount < 1 || colorCount > 4) {
     return {
       valid: false, colorCount, quantity, minQuantity, unitPrice,
       totalPrice: 0, productionDays, designFeeNote,
-      errorMessage: '색상 수는 1~10개 사이여야 합니다.'
+      errorMessage: '색상 수는 1~4색까지만 가능합니다. (최대 4색 인쇄)'
     }
   }
 

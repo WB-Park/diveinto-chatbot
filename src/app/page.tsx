@@ -64,16 +64,28 @@ function OrderCard({ data }: { data: Record<string, unknown> }) {
   )
 }
 
+// --- 마크다운 기호 제거 ---
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')   // **bold** → bold
+    .replace(/\*(.*?)\*/g, '$1')       // *italic* → italic
+    .replace(/^#{1,6}\s+/gm, '')       // ## heading → heading
+    .replace(/^[-*+]\s+/gm, '• ')      // - item → • item (깔끔한 불릿으로)
+    .replace(/`(.*?)`/g, '$1')         // `code` → code
+}
+
+const LOGO_URL = 'https://ecimg.cafe24img.com/pg1056b95784775091/diveintosmile/web/upload/_dj/img/s107/240613/logo3.png'
+
 // --- 메시지 버블 ---
 function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
+  const displayContent = isUser ? message.content : stripMarkdown(message.content)
   return (
     <div className={`msg-enter flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
       <div className={`max-w-[85%] ${isUser ? 'order-2' : 'order-1'}`}>
         {!isUser && (
           <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">D</div>
-            <span className="text-xs text-gray-400 font-medium">다이브인투</span>
+            <img src={LOGO_URL} alt="다이브인투" className="h-5 object-contain" />
           </div>
         )}
         <div
@@ -83,7 +95,7 @@ function ChatBubble({ message }: { message: Message }) {
               : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
           }`}
         >
-          {message.content}
+          {displayContent}
         </div>
         {/* 첨부 파일 미리보기 */}
         {message.files && message.files.length > 0 && (
@@ -122,8 +134,7 @@ function TypingIndicator() {
     <div className="flex justify-start mb-3 msg-enter">
       <div>
         <div className="flex items-center gap-1.5 mb-1">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">D</div>
-          <span className="text-xs text-gray-400 font-medium">다이브인투</span>
+          <img src={LOGO_URL} alt="다이브인투" className="h-5 object-contain" />
         </div>
         <div className="px-4 py-3 bg-white rounded-2xl rounded-bl-md shadow-sm border border-gray-100 flex gap-1">
           <span className="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block" />
@@ -291,8 +302,8 @@ export default function ChatPage() {
     <div className="h-full flex flex-col max-w-lg mx-auto bg-surface">
       {/* 헤더 */}
       <header className="flex-shrink-0 bg-gradient-to-r from-primary to-secondary px-4 py-3 flex items-center gap-3 shadow-md">
-        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white text-lg font-bold">
-          D
+        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1.5">
+          <img src={LOGO_URL} alt="다이브인투" className="h-full object-contain" />
         </div>
         <div>
           <h1 className="text-white font-bold text-base">다이브인투</h1>
