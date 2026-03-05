@@ -232,10 +232,11 @@ async function crawlProductDetail(url: string, category: string): Promise<Produc
 }
 
 export async function POST(req: NextRequest) {
-  // 간단한 인증
+  // 관리자 인증
   const { searchParams } = new URL(req.url)
   const secret = searchParams.get('secret')
-  if (secret !== process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-10)) {
+  const adminKey = process.env.CRAWL_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-10)
+  if (!adminKey || secret !== adminKey) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
