@@ -296,11 +296,11 @@ function TypingIndicator() {
 // --- 퀵 액션 (MIRROR 보강 #2: 확장) ---
 function QuickActions({ onAction, disabled }: { onAction: (text: string) => void; disabled?: boolean }) {
   const actions = [
+    { emoji: '🎨', label: '단체 수모 주문제작', text: '단체 수영모 주문제작하고 싶어요' },
     { emoji: '🏊', label: '수영모 추천', text: '수영모자 추천해주세요' },
     { emoji: '👙', label: '수영복 추천', text: '수영복 추천해주세요' },
     { emoji: '🔥', label: '타임세일', text: '지금 할인 중인 상품 있어요?' },
     { emoji: '📏', label: '사이즈 가이드', text: '사이즈 어떻게 선택하면 될까요?' },
-    { emoji: '🎨', label: '단체 수모', text: '단체 수영모 주문제작하고 싶어요' },
     { emoji: '✨', label: '인기 상품', text: '요즘 인기 있는 상품 보여주세요' },
   ]
   return (
