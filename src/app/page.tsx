@@ -25,6 +25,18 @@ interface ToolResult {
   data: Record<string, unknown>
 }
 
+interface ProductData {
+  name: string
+  price: string
+  category: string
+  url: string
+  thumbnail: string
+  colors: string[]
+  sizes: string[]
+  size_info: string
+  description_summary: string
+}
+
 // --- 견적 계산 카드 ---
 function QuoteCard({ data }: { data: Record<string, unknown> }) {
   if (data.error) {
@@ -64,13 +76,107 @@ function OrderCard({ data }: { data: Record<string, unknown> }) {
   )
 }
 
+// --- 상품 카드 (MIRROR 보강 #1: 핵심!) ---
+function ProductCard({ product }: { product: ProductData }) {
+  const hasImage = product.thumbnail && product.thumbnail.startsWith('http')
+
+  return (
+    <div className="flex-shrink-0 w-[200px] bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden snap-start">
+      {/* 상품 이미지 */}
+      <div className="w-full h-[180px] bg-gray-50 relative overflow-hidden">
+        {hasImage ? (
+          <img
+            src={product.thumbnail}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+              ;(e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
+            }}
+          />
+        ) : null}
+        <div className={`${hasImage ? 'hidden' : ''} w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-blue-50 to-cyan-50`}>
+          {product.category === '수영복' ? '👙' : product.category === '수영모자' ? '🏊' : '🏷️'}
+        </div>
+        {/* 카테고리 뱃지 */}
+        <span className="absolute top-2 left-2 px-2 py-0.5 bg-primary/90 text-white text-[10px] rounded-full font-medium">
+          {product.category}
+        </span>
+      </div>
+
+      {/* 상품 정보 */}
+      <div className="p-3">
+        <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-1">
+          {product.name}
+        </h3>
+        <div className="text-base font-bold text-primary mb-2">{product.price}</div>
+
+        {/* 사이즈 칩 */}
+        {product.sizes && product.sizes.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {product.sizes.slice(0, 5).map((size, i) => (
+              <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                {size}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 색상 표시 */}
+        {product.colors && product.colors.length > 0 && (
+          <div className="text-[11px] text-gray-400 mb-2 truncate">
+            {product.colors.slice(0, 3).join(' · ')}{product.colors.length > 3 ? ` +${product.colors.length - 3}` : ''}
+          </div>
+        )}
+
+        {/* CTA 버튼 */}
+        <a
+          href={product.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dark transition-colors active:scale-[0.97]"
+        >
+          상품 보기 →
+        </a>
+      </div>
+    </div>
+  )
+}
+
+// --- 상품 캐러셀 ---
+function ProductCarousel({ products }: { products: ProductData[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div className="mt-2 -mx-1">
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 px-1 scrollbar-hide"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {products.map((product, i) => (
+          <ProductCard key={i} product={product} />
+        ))}
+      </div>
+      {products.length > 1 && (
+        <div className="flex justify-center gap-1 mt-1">
+          {products.map((_, i) => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- 마크다운 기호 제거 ---
 function stripMarkdown(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, '$1')   // **bold** → bold
     .replace(/\*(.*?)\*/g, '$1')       // *italic* → italic
     .replace(/^#{1,6}\s+/gm, '')       // ## heading → heading
-    .replace(/^[-*+]\s+/gm, '• ')      // - item → • item (깔끔한 불릿으로)
+    .replace(/^[-*+]\s+/gm, '• ')      // - item → • item
     .replace(/`(.*?)`/g, '$1')         // `code` → code
 }
 
@@ -80,9 +186,23 @@ function renderWithLinks(text: string) {
   const parts = text.split(urlPattern)
   return parts.map((part, i) => {
     if (part.match(/^https?:\/\//)) {
+      // diveinto.kr 링크는 "상품 보기" 버튼으로
+      if (part.includes('diveinto.kr/product/')) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 my-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full hover:bg-primary/20 transition-colors"
+          >
+            🔗 상품 보기
+          </a>
+        )
+      }
       return (
         <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline break-all">
-          {part}
+          {part.length > 40 ? part.slice(0, 40) + '...' : part}
         </a>
       )
     }
@@ -96,9 +216,16 @@ const LOGO_URL = 'https://ecimg.cafe24img.com/pg1056b95784775091/diveintosmile/w
 function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
   const displayContent = isUser ? message.content : stripMarkdown(message.content)
+
+  // search_products 결과에서 상품 데이터 추출
+  const searchResult = message.toolResults?.find(tr => tr.name === 'search_products')
+  const products: ProductData[] = searchResult
+    ? ((searchResult.data as Record<string, unknown>).results as ProductData[]) || []
+    : []
+
   return (
     <div className={`msg-enter flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
-      <div className={`max-w-[85%] ${isUser ? 'order-2' : 'order-1'}`}>
+      <div className={`max-w-[90%] ${isUser ? 'order-2' : 'order-1'}`}>
         {!isUser && (
           <div className="flex items-center gap-1.5 mb-1">
             <img src={LOGO_URL} alt="다이브인투" className="h-5 object-contain" />
@@ -113,6 +240,10 @@ function ChatBubble({ message }: { message: Message }) {
         >
           {isUser ? displayContent : renderWithLinks(displayContent)}
         </div>
+
+        {/* 상품 카드 캐러셀 (MIRROR 보강 #1) */}
+        {products.length > 0 && <ProductCarousel products={products} />}
+
         {/* 첨부 파일 미리보기 */}
         {message.files && message.files.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -162,20 +293,24 @@ function TypingIndicator() {
   )
 }
 
-// --- 퀵 액션 (항상 표시) ---
+// --- 퀵 액션 (MIRROR 보강 #2: 확장) ---
 function QuickActions({ onAction, disabled }: { onAction: (text: string) => void; disabled?: boolean }) {
   const actions = [
-    { emoji: '🏊', label: '단체 수모 제작', text: '단체 수영모 주문제작하고 싶어요' },
-    { emoji: '👙', label: '상품 추천', text: '수영복이나 수영모자 추천해주세요' },
+    { emoji: '🏊', label: '수영모 추천', text: '수영모자 추천해주세요' },
+    { emoji: '👙', label: '수영복 추천', text: '수영복 추천해주세요' },
+    { emoji: '🔥', label: '타임세일', text: '지금 할인 중인 상품 있어요?' },
+    { emoji: '📏', label: '사이즈 가이드', text: '사이즈 어떻게 선택하면 될까요?' },
+    { emoji: '🎨', label: '단체 수모', text: '단체 수영모 주문제작하고 싶어요' },
+    { emoji: '✨', label: '인기 상품', text: '요즘 인기 있는 상품 보여주세요' },
   ]
   return (
-    <div className="flex flex-wrap gap-2 justify-center py-2">
+    <div className="flex gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
       {actions.map((a) => (
         <button
           key={a.label}
           onClick={() => onAction(a.text)}
           disabled={disabled}
-          className="flex items-center gap-1.5 px-4 py-2 bg-white border border-blue-200 rounded-full text-sm text-gray-700 hover:bg-blue-50 hover:border-primary transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white border border-blue-200 rounded-full text-[13px] text-gray-700 hover:bg-blue-50 hover:border-primary transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
         >
           <span>{a.emoji}</span>
           <span>{a.label}</span>
@@ -211,12 +346,12 @@ export default function ChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // 초기 인사 메시지
+  // 초기 인사 메시지 (MIRROR 보강 #3: 개선된 웰컴)
   useEffect(() => {
     const greeting: Message = {
       id: 'greeting',
       role: 'assistant',
-      content: '안녕하세요! 다이브인투입니다 🏊\n수영모자 & 수영복 전문 쇼핑몰에 오신 것을 환영합니다.\n\n무엇을 도와드릴까요?',
+      content: '안녕하세요! 다이브인투입니다 🏊\n\n수영모자부터 수영복까지, 원하시는 상품을 찾아드릴게요.\n아래 버튼을 눌러보시거나, 원하시는 걸 자유롭게 말씀해주세요!',
       timestamp: new Date(),
     }
     setMessages([greeting])
@@ -300,7 +435,6 @@ export default function ChatPage() {
     } catch {
       alert('파일 업로드 중 오류가 발생했습니다.')
     }
-    // 파일 인풋 초기화
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -361,7 +495,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* 퀵 액션 칩 (항상 표시) */}
+      {/* 퀵 액션 칩 (확장) */}
       <div className="flex-shrink-0 bg-surface border-t border-gray-100 px-3 pt-2">
         <QuickActions onAction={(text) => sendMessage(text)} disabled={isLoading} />
       </div>
